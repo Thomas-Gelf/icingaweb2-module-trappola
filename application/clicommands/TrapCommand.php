@@ -28,6 +28,13 @@ class TrapCommand extends Command
         }
     }
 
+    public function mibAction()
+    {
+        while (false !== ($f = fgets(STDIN, 65535))) {
+            $data = json_decode($f);
+        }
+    }
+
     protected function db()
     {
         if ($this->db === null) {
