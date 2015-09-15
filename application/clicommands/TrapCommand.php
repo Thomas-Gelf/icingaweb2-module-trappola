@@ -32,6 +32,7 @@ class TrapCommand extends Command
     {
         while (false !== ($f = fgets(STDIN, 65535))) {
             $data = json_decode($f);
+            print_r($data);
         }
     }
 
