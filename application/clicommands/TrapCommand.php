@@ -30,10 +30,12 @@ class TrapCommand extends Command
 
     public function mibAction()
     {
+        $in = '';
         while (false !== ($f = fgets(STDIN, 65535))) {
-            $data = json_decode($f);
-            print_r($data);
+            $in .= $f;
         }
+        $data = json_decode($f);
+        print_r($data);
     }
 
     protected function db()
