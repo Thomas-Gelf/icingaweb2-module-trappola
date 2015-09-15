@@ -1,0 +1,1 @@
+SELECT v.oid, v.type, v.value, o.short_name, o.mib_name from trap_varbind v join trap_oidcache o ON o.oid = v.oid WHERE v.trap_id = 1;

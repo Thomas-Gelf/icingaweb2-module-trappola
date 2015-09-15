@@ -1,0 +1,89 @@
+{"transport":"udp","short_name":"linkUp","sys_uptime":"107297","src_address":"127.0.0.1","oid":".1.3.6.1.6.3.1.1.5.4","mib_name":"IF-MIB","dst_address":"127.0.0.1","auth":"public","timestamp":"2015-09-03 17:45:16","id":"540","src_port":"56408","version":"v2c","message":"A linkUp trap signifies that the SNMP entity, acting in an agent role, has detected that the ifOperStatus object for one of its communication links left the down state and transitioned into some other state (but not into the notPresent state).  This other state is indicated by the included value of ifOperStatus.","messageid":"0","network_protocol":"ipv4","transactionid":"1","varbinds":[{"value":"2","oid":".1.3.6.1.2.1.2.2.1.1","type":"integer"},{"value":"1","oid":".1.3.6.1.2.1.2.2.1.8","type":"integer"},{"value":"1","oid":".1.3.6.1.2.1.2.2.1.7","type":"integer"}],"security":"v2c","type":"trap","requestid":"1562295987"}
+
+
+
+
+Software: MIBs-H3C-3Com_V4.0 
+
+http://h30538.www3.hp.com/prdownloads/MIBs-H3C-3Com_V4.0_MIBs-H3C-3Com_V4.0.zip?downloadid=kM-ARzNtH55UEYAxPr4_zbso3XQ3X_G2M7oHzTgLYxydyIhWZro9sElX7MwQBFBz42HCxJjPH28PxKfr7A0gOwYKXiizo6KYTYrymp2JkoBakqjY7Mn89HTHtLFua_LF&merchantId=LAPUSB&rnid=1.0&bpid=HPN&egid=F&__dlk__=1441357397_2ec3c64dfa748cc6a87c0861e846eda3
+
+
+/tmp/MIBs-H3C-3Com_V4.0_MIBs-H3C-3Com_V4.0.zip
+
+
+upd10.10mib.tar.gz
+cp hpnn/cpq*.mib .
+
+sed -ri 's/submitted_to_ISEE/submitted-to-ISEE/g' cpqservice.mib
+sed -ri 's/sCellEventTrap_([0-9a-z]+)_([0-9a-z]+)/sCellEventTrap-\1-\2/g' cpqhsv110v3.mib
+
+sed -ri 's/mngmtAgentTrap_([0-9]+)/mngmtAgentTrap-\1/g' cpqhsv110v3.mib
+
+sed -ri 's/cpqSMAControllerPort_([0-9]+)_([0-9A-Za-z]+)/cpqSMAControllerPort-\1-\2/g' cpqappg80.mib
+
+sed -ri 's/loop_(hard|soft)/loop-\1/g' cpqappg80.mib
+sed -ri 's/best_(fit|performance)/best-\1/g' cpqappg80.mib
+
+
+cp hpnn/hp*.mib .
+sed -ri 's/(Start|Stop|Pause|Continue)_Pending/\1-Pending/g' hpswa.mib
+sed -ri 's/loopID_([0-9]+)/loopID-\1/g' hpnr.mib
+sed -ri 's/FC_Chan/FC-Chan/g' hpnr.mib
+
+
+cp hpnnn/HP/MIBs/ieee80217-rpr.mib .
+cp hpnnn/HP/MIBs/ieee8021x.mib .
+cp hpnnn/HP/MIBs/lldp.mib .
+cp hp/hpicfFf.mib .  # hpicfFaultFinder
+
+
+
+
+https://github.com/winlibs/net-snmp/blob/master/dist/schema-snmptrapd.sql:
+
+USE net_snmp;
+DROP TABLE IF EXISTS notifications;
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `trap_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `date_time` datetime NOT NULL,
+  `host` varchar(255) NOT NULL,
+  `auth` varchar(255) NOT NULL,
+  `type` ENUM('get','getnext','response','set','trap','getbulk','inform','trap2','report') NOT NULL,
+  `version` ENUM('v1','v2c', 'unsupported(v2u)','v3') NOT NULL,
+  `request_id` int(11) unsigned NOT NULL,
+  `snmpTrapOID` varchar(1024) NOT NULL,
+  `transport` varchar(255) NOT NULL,
+  `security_model` ENUM('snmpV1','snmpV2c','USM') NOT NULL,
+  `v3msgid` int(11) unsigned,
+  `v3security_level` ENUM('noAuthNoPriv','authNoPriv','authPriv'),
+  `v3context_name` varchar(32),
+  `v3context_engine` varchar(64),
+  `v3security_name` varchar(32),
+  `v3security_engine` varchar(64),
+  PRIMARY KEY  (`trap_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+DROP TABLE IF EXISTS varbinds;
+CREATE TABLE IF NOT EXISTS `varbinds` (
+  `trap_id` int(11) unsigned NOT NULL default '0',
+  `oid` varchar(1024) NOT NULL,
+  `type` ENUM('boolean','integer','bit','octet','null','oid','ipaddress','counter','unsigned','timeticks','opaque','unused1','counter64','unused2') NOT NULL,
+  `value` blob NOT NULL,
+  KEY `trap_id` (`trap_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+snmp-server host 10.0.10.72 "public" All informs retries 1 timeout 10 
+
+
+apt-get install php5-cli php5-mysql
+unknown traps
+-> should be deleted fast
+
+Phabricator:
+=============
+apt-get update
+apt-get install locales vim git
+apt-get install libapache2-mod-php5 php5-mysql php5-cli php5-curl php5-apcu php5-gd
+apt-get install postfix
+

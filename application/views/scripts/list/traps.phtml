@@ -1,0 +1,15 @@
+<div class="controls">
+<?= $this->tabs ?>
+<h1>SNMP Traps</h1>
+<?= $this->filterEditor ?><br />
+<?= $this->table->getPaginator() ?>
+
+<!--
+
+ | listener_id | timestamp           | host_name | src_address | src_port | dst_address | dst_port | auth   | message | sys_uptime | type | version | requestid  | transactionid | messageid  | oid                      | short_name       | mib_name           | transport | security | v3_sec_level | v3_sec_name | v3_sec_engine | v3_ctx_name | v3_ctx_engine    
+
+-->
+</div>
+<div class="content" data-base-target="_next">
+<?= $this->table ?>
+</div>

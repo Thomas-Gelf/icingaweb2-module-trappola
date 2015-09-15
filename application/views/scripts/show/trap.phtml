@@ -1,0 +1,41 @@
+<?php
+
+$str_oid = '%s::%s (%s)';
+
+?><div class="controls">
+<?= $this->tabs ?>
+<h1><?= $this->escape($this->trap->mib_name . '::' . $this->trap->short_name) ?></h1>
+<p><?= $this->escape($this->trap->message) ?></p>
+</div>
+<!--<pre>
+<?= $this->escape(print_r($this->trap, 1)) ?>
+</pre>-->
+<div class="content">
+<table class="avp">
+<tr><th>Timestamp</th><td><?= $trap->timestamp ?></td></tr>
+<tr><th>Hostname</th><td><?= $this->escape($trap->host_name) ?></td></tr>
+<tr><th>OID</th><td><?= $trap->oid ?> (<?= $trap->type ?>)</td></tr>
+<tr><th>Sender</th><td><?= $trap->transport ?>://<?= $trap->src_address ?>:<?= $trap->src_port ?>, SNMP <?= $trap->version ?></td></tr>
+<tr><th>Auth</th><td><?= $trap->auth ?></td></tr>
+<?php foreach ($this->trap->varbinds as $var): ?>
+<?php if ($var->value === '') continue; ?>
+<tr>
+  <th><?php
+if ($trap->resolvesOid($var->oid)) {
+    echo $this->escape($trap->resolveOid($var->oid)->short_name);
+} else {
+    echo $this->escape($var->oid);
+}
+ ?></th>
+  <td><?= $this->escape($var->type === 'object_id' ? $trap->getOidName($var->value) : $var->value) ?> (<?= $var->type ?>)
+<?php if ($trap->resolvesOid($var->oid)) {
+    $res = $trap->resolveOid($var->oid);
+    echo $this->icon(
+    'info',
+    sprintf($str_oid, $res->mib_name, $res->short_name, $var->oid) . " \n" . $res->description
+  );
+} ?></td>
+</tr>
+<?php endforeach ?>
+</table>
+</div>
