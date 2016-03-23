@@ -18,6 +18,8 @@ class TrapCommand extends Command
             $db->getDbAdapter()->beginTransaction();
             $trap = Trap::create((array) $data);
 
+            // Oracle Enterprise Manager trap
+            // Set host to oraEMNGEventHostName.1 and message to oraEMNGEventMessage.1
             if ($trap->oid === '.1.3.6.1.4.1.111.15.2.0.3') {
                 $trap->host_name = $trap->getVarbind('.1.3.6.1.4.1.111.15.3.1.1.24.1')->value;
                 $trap->message   = $trap->getVarbind('.1.3.6.1.4.1.111.15.3.1.1.3.1')->value;
