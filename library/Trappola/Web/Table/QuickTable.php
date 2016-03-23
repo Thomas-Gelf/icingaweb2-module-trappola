@@ -200,7 +200,7 @@ abstract class QuickTable implements Paginatable
     {
         $data = $this->fetchData();
 
-        $htm = '<table class="simple action">' . "\n"
+        $htm = '<table class="simple common-table table-row-selectable">' . "\n"
              . $this->renderTitles($this->getTitles())
              . "<tbody>\n";
         foreach ($data as $row) {
