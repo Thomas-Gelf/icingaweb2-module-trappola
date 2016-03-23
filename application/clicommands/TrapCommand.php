@@ -28,6 +28,34 @@ class TrapCommand extends Command
         }
     }
 
+    public function checkAction()
+    {
+        $host  = $this->params->shift('host');
+        $address = $this->params->shift('address');
+        $since = $this->params->shift('since');
+        $match = $this->params->shift('match');
+
+        $db = $this->db()->getDbAdapter();
+        $events = $db->select()->from('trap', 'COUNT(*)');
+        if ($host) {
+            $events->where('host_name LIKE ?', str_replace('*', '%', $host));
+        }
+        if ($address) {
+            $events->where('src_address LIKE ?', str_replace('*', '%', $address));
+        }
+        if ($address) {
+            $events->where('src_address LIKE ?', str_replace('*', '%', $address));
+        }
+        if ($match) {
+            $events->where('message LIKE ?',  str_replace('*', '%', $match));
+        }
+
+        $cnt = $db->fetchOne($events);
+
+        printf("Found %s traps\n", $cnt);
+        exit(0);
+    }
+
     public function mibAction()
     {
         $in = '';
