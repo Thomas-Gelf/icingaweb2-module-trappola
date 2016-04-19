@@ -3,12 +3,22 @@
 namespace Icinga\Module\Trappola\Clicommands;
 
 use Icinga\Cli\Command;
+use Icinga\Module\Trappola\Handler\OracleEnterpriseTrapHandler;
 use Icinga\Module\Trappola\Trap;
 use Icinga\Module\Trappola\TrapDb;
 
 class TrapCommand extends Command
 {
     protected $db;
+
+    public function testAction()
+    {
+        $trap = Trap::load(44085, $this->db());
+        echo $trap->getVarbind('.1.3.6.1.4.1.111.15.3.1.1.3.1')->value;
+        echo $trap->getVarbindByShortname('oraEMNGEventHostName.1');
+        //oraEMNGEventHostName.1
+        echo "\n";
+    }
 
     public function receiveAction()
     {
@@ -17,16 +27,36 @@ class TrapCommand extends Command
             $data = json_decode($f);
             $db->getDbAdapter()->beginTransaction();
             $trap = Trap::create((array) $data);
-
-            // Oracle Enterprise Manager trap
-            // Set host to oraEMNGEventHostName.1 and message to oraEMNGEventMessage.1
-            if ($trap->oid === '.1.3.6.1.4.1.111.15.2.0.3') {
-                $trap->host_name = $trap->getVarbind('.1.3.6.1.4.1.111.15.3.1.1.24.1')->value;
-                $trap->message   = $trap->getVarbind('.1.3.6.1.4.1.111.15.3.1.1.3.1')->value;
+            foreach ($this->trapHandlers() as $handler) {
+                if ($handler->wants($trap)) {
+                    $handler->mangle($trap);
+                }
             }
 
             $trap->store($db);
             $db->getDbAdapter()->commit();
+        }
+    }
+
+    protected function trapHandlers()
+    {
+        return array(
+            new OracleEnterpriseTrapHandler()
+        );
+    }
+
+    // TODO: This is a prototype
+    public function expireAction()
+    {
+        $db = $this->db();
+        $cnt = 0;
+        foreach ($db->fetchExpiredIcingaIssues() as $issue) {
+            $issue->sendExpiration($commandPipe);
+            $cnt++;
+        }
+
+        if ($cnt > 0) {
+            printf("%d expired Icinga Trap issues have been removed", $cnt);
         }
     }
 
