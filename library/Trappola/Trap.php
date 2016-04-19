@@ -19,6 +19,8 @@ class Trap extends DbObject
 
     protected $varbind_idx;
 
+    protected $varbindShortIdx;
+
     protected $defaultProperties = array(
         'id'          => null,
         'listener_id' => null,
@@ -118,6 +120,7 @@ class Trap extends DbObject
             $this->fillOidCache();
         }
         
+        //print_r($this->oidCache);
         return array_key_exists($oid, $this->oidCache)
             && $this->oidCache[$oid]->mib_name !== null;
     }
@@ -172,6 +175,10 @@ class Trap extends DbObject
 
     public function getVarbind($oid)
     {
+        if ($this->varbinds === null) {
+            $this->getVarbinds();
+        }
+
         if (array_key_exists($oid, $this->varbind_idx)) {
             return $this->varbinds[$this->varbind_idx[$oid]];
         }
@@ -182,9 +189,13 @@ class Trap extends DbObject
     public function getVarbinds()
     {
         if ($this->varbinds === null) {
+            //$this->varbind_idx = array();
             if ($this->hasBeenLoadedFromDb()) {
                 $db = $this->getConnection();
                 $this->varbinds = TrapVarbind::loadAll($db, $db->getTrapVarsQuery($this->id));
+                //foreach ($this->varbinds as $key => $varbind) {
+                //    $this->varbind_idx[$varbind->oid] = $key;
+                //}
             } else {
                 $this->varbinds = array();
             }
