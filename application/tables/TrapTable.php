@@ -8,15 +8,18 @@ class TrapTable extends QuickTable
 {
     protected $searchColumns = array(
         'name',
-        'message'
+        'message',
+        'host_name'
     );
 
     public function getColumns()
     {
         return array(
             'id'          => 't.id',
+            'oid'         => 't.oid',
             'mib_name'    => 't.mib_name',
             'short_name'  => 't.short_name',
+            'host_name'   => 't.host_name',
             'src_address' => "CASE WHEN t.host_name IS NULL OR t.host_name = '' THEN t.src_address ELSE t.host_name END",
             'name'        => "CASE WHEN t.short_name IS NULL THEN t.oid ELSE t.mib_name || '::' || t.short_name END",
             'message'     => 't.message',
