@@ -15,6 +15,7 @@ use Icinga\Web\Request;
 use Icinga\Web\Url;
 use Icinga\Web\Widget;
 use Icinga\Web\Widget\Paginator;
+use stdClass;
 
 abstract class QuickTable implements Paginatable
 {
@@ -32,10 +33,43 @@ abstract class QuickTable implements Paginatable
 
     protected $searchColumns = array();
 
+    protected function getRowClasses($row)
+    {
+        return array();
+    }
+
+    protected function getRowClassesString($row)
+    {
+        return $this->createClassAttribute($this->getRowClasses($row));
+    }
+
+    private function createClassAttribute($classes)
+    {
+        $str = $this->createClassesString($classes);
+        if (strlen($str) > 0) {
+            return ' class="' . $str . '"';
+        } else {
+            return '';
+        }
+    }
+
+    private function createClassesString($classes)
+    {
+        if (is_string($classes)) {
+            $classes = array($classes);
+        }
+
+        if (empty($classes)) {
+            return '';
+        } else {
+            return implode(' ', $classes);
+        }
+    }
+
     protected function renderRow($row)
     {
-        $htm = "  <tr>\n";
-        $firstRow = true;
+        $htm = "  <tr" . $this->getRowClassesString($row) . ">\n";
+        $firstCol = true;
 
         foreach ($this->getTitles() as $key => $title) {
 
@@ -48,21 +82,19 @@ abstract class QuickTable implements Paginatable
 
             $value = null;
 
-            if ($firstRow) {
+            if ($firstCol) {
                 if ($val !== null && $url = $this->getActionUrl($row)) {
                     $value = $this->view()->qlink($val, $this->getActionUrl($row));
                 }
-                $firstRow = false;
+                $firstCol = false;
             }
 
             if ($value === null) {
                 if ($val === null) {
                     $value = '-';
-                } elseif (is_array($val)) {
-                    $value = nl2br($this->view()->escape(implode("\n", $val)));
                 } else {
                     $value = $this->view()->escape($val);
-                } 
+                }
             }
 
             $htm .= '    <td>' . $value . "</td>\n";
@@ -99,6 +131,13 @@ abstract class QuickTable implements Paginatable
             $query->limit($this->getLimit(), $this->getOffset());
         }
 
+        $this->applyFiltersToQuery($query);
+
+        return $db->fetchAll($query);
+    }
+
+    protected function applyFiltersToQuery($query)
+    {
         $filter = null;
         $enforced = $this->enforcedFilters;
         if ($this->filter && ! $this->filter->isEmpty()) {
@@ -113,7 +152,7 @@ abstract class QuickTable implements Paginatable
             $query->where($this->renderFilter($filter));
         }
 
-        return $db->fetchAll($query);
+        return $query;
     }
 
     public function getPaginator()
@@ -127,8 +166,11 @@ abstract class QuickTable implements Paginatable
     public function count()
     {
         $db = $this->connection()->getConnection();
+        $query = clone($this->getBaseQuery());
+        $query->reset('order')->columns(array('COUNT(*)'));
+        $this->applyFiltersToQuery($query);
 
-        return $db->fetchOne($this->getBaseQuery()->columns(array('COUNT(*)')));
+        return $db->fetchOne($query);
     }
 
     public function limit($count = null, $offset = null)
@@ -196,11 +238,16 @@ abstract class QuickTable implements Paginatable
         return Url::fromPath($url, $params);
     }
 
+    protected function listTableClasses()
+    {
+        return array('simple', 'common-table', 'table-row-selectable');
+    }
+
     public function render()
     {
         $data = $this->fetchData();
 
-        $htm = '<table class="simple common-table table-row-selectable">' . "\n"
+        $htm = '<table' . $this->createClassAttribute($this->listTableClasses()) . '>' . "\n"
              . $this->renderTitles($this->getTitles())
              . "<tbody>\n";
         foreach ($data as $row) {
@@ -311,7 +358,11 @@ abstract class QuickTable implements Paginatable
                 }
             }
         } else {
-            $str .= $this->whereToSql($this->mapFilterColumn($filter->getColumn()), $filter->getSign(), $filter->getExpression());
+            $str .= $this->whereToSql(
+                $this->mapFilterColumn($filter->getColumn()),
+                $filter->getSign(),
+                $filter->getExpression()
+            );
         }
 
         return $str;
