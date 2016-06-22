@@ -50,9 +50,15 @@ class TrapCommand extends Command
 
     protected function trapHandlers()
     {
-        return array(
+        $handlers = array(
             new OracleEnterpriseTrapHandler()
         );
+
+        foreach ($handlers as $handler) {
+            $handlers->initialize();
+        }
+
+        return $handlers;
     }
 
     // TODO: This is a prototype
