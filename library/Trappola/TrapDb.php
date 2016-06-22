@@ -51,5 +51,14 @@ class TrapDb extends DbConnection
         $select = $this->db()->select()->from('trap', '*')->where('id = ?', $id);
         return $this->db()->fetchRow($select);
     }
+
+    public function fetchOidNamesByMib($mibname)
+    {
+        $select = $this->db()->select()
+            ->from('trap_oidcache', array('oid', 'short_name'))
+            ->where('mib_name = ?', $mibname);
+
+        return $this->db()->fetchPairs($select);
+    }
 }
 
