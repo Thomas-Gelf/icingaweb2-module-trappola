@@ -43,6 +43,7 @@ class Trap extends DbObject
         'oid'              => null,
         'short_name'       => null,
         'mib_name'         => null,
+        'acknowledged'     => 'n',
         'transport'        => null,
         'security'         => null,
         'v3_sec_level'     => null,
