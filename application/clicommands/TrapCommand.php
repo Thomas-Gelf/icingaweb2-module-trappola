@@ -59,7 +59,7 @@ class TrapCommand extends Command
         foreach ($this->trapHandlers() as $handler) {
             if ($handler->wants($trap)) {
                 $handler->mangle($trap);
-                $handler->process($trap);
+                $handler->processNewTrap($trap);
             }
         }
 
@@ -141,7 +141,8 @@ class TrapCommand extends Command
         );
 
         foreach ($handlers as $handler) {
-            $handlers->initialize();
+            $handler->setDb($this->db());
+            $handler->initialize();
         }
 
         $this->handlers = $handlers;
