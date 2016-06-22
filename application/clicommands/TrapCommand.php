@@ -34,17 +34,62 @@ class TrapCommand extends Command
     {
         $db = $this->db();
         while (false !== ($f = fgets(STDIN, 65535))) {
-            $data = json_decode($f);
             $db->getDbAdapter()->beginTransaction();
-            $trap = Trap::create((array) $data);
-            foreach ($this->trapHandlers() as $handler) {
-                if ($handler->wants($trap)) {
-                    $handler->mangle($trap);
+            $this->storeJsonTrap($f);
+            $db->getDbAdapter()->commit();
+        }
+    }
+
+    protected function storeJsonTrap($json)
+    {
+        $trap = Trap::fromSerializedJson($json, $this->db());
+        $trap->resolveTrapName();
+        foreach ($this->trapHandlers() as $handler) {
+            if ($handler->wants($trap)) {
+                $handler->mangle($trap);
+                $handler->process($trap);
+            }
+        }
+
+        $trap->store();
+
+        return $this;
+    }
+
+    public function consumeAction()
+    {
+        $db = $this->db()->getDbAdapter();
+        $hasTransaction = false;
+        $cnt = 0;
+        $redis = $this->redis();
+
+        while (true) {
+
+            while ($res = $redis->brpop('Trappola::queue', 1)) {
+                $cnt++;
+                if (! $hasTransaction) {
+                    $db->beginTransaction();
+                    $hasTransaction = true;
+                }
+                // res = array(queuename, value)
+                $this->storeJsonTrap($res[1]);
+                if ($cnt >= 50) {
+                    break;
                 }
             }
+            echo "Got nothing for 1sec\n";
 
-            $trap->store($db);
-            $db->getDbAdapter()->commit();
+            if ($hasTransaction) {
+                if ($cnt > 0) {
+                    echo "Committing $cnt events\n";
+                    $cnt = 0;
+                    $db->commit();
+                } else {
+                    $db->rollBack();
+                }
+
+                $hasTransaction = false;
+            }
         }
     }
 
