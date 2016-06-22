@@ -22,7 +22,15 @@ class TrapCommand extends Command
     {
         $trap = Trap::load(44085, $this->db());
         echo $trap->getVarbind('.1.3.6.1.4.1.111.15.3.1.1.3.1')->value;
-        echo $trap->getVarbindByShortname('oraEMNGEventHostName.1');
+//        echo $trap->getVarbindByShortname('oraEMNGEventHostName.1');
+        // echo $trap->getVarByName('oraEMNGEventHostName.1');
+        foreach ($this->trapHandlers() as $handler) {
+            if ($handler->wants($trap)) {
+                $handler->mangle($trap);
+                $handler->processNewTrap($trap);
+            }
+        }
+
         //oraEMNGEventHostName.1
         echo "\n";
     }
