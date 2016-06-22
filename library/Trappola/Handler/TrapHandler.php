@@ -10,10 +10,18 @@ abstract class TrapHandler
 
     protected $oid;
 
-    public function process(Trap $trap)
+    final public function processNewTrap(Trap $trap)
     {
         $this->trap = $trap;
-        IcingaTrapService::handle($this);
+        return $this->process();
+    }
+
+    public function initialize()
+    {
+    }
+
+    public function process()
+    {
     }
 
     public function mangle(Trap $trap)
@@ -39,6 +47,11 @@ abstract class TrapHandler
         );
     }
 
+    protected function getIssueIdentifier()
+    {
+        return sha1($this->getIcingaObjectName());
+    }
+
     public function getIcingaHostname()
     {
         return $this->getHostname();
@@ -52,6 +65,11 @@ abstract class TrapHandler
     public function getIcingaState()
     {
         return 0;
+    }
+
+    protected function getTrap()
+    {
+        return $this->trap;
     }
     
     protected function stripDomain($host)
