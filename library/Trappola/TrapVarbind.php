@@ -21,4 +21,13 @@ class TrapVarbind extends DbObject
         'mib_name'    => null,
         'description' => null,
     );
+
+    public function toSerializedObject()
+    {
+        return (object) array(
+            'oid'   => $this->oid,
+            'type'  => $this->type,
+            'value' => $this->value
+        );
+    }
 }
