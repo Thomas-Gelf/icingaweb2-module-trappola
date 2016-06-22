@@ -23,6 +23,13 @@ class TrapCommand extends Command
         echo "\n";
     }
 
+    public function resendAction()
+    {
+        $id = $this->params->shift();
+        $trap = Trap::load((int) $id, $this->db());
+        $this->redis()->lpush('Trappola::queue', $trap->toSerializedJson());
+    }
+
     public function receiveAction()
     {
         $db = $this->db();
