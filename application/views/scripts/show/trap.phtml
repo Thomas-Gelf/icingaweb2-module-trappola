@@ -6,12 +6,23 @@ $str_oid = '%s::%s (%s)';
 <?= $this->tabs ?>
 <h1><?= $this->escape($this->trap->mib_name . '::' . $this->trap->short_name) ?></h1>
 <p><?= $this->escape($this->trap->message) ?></p>
+<?php
+/*
+if ($trap->resolvesOid($trap->oid)) {
+    $trapOid = $trap->resolveOid($trap->oid);
+    if ($trapOid->description && $trapOid->description !== $trap->message) {
+        printf("<p>%s</p>\n", $this->escape($trapOid->description));
+    }
+}
+*/
+
+?>
 </div>
 <!--<pre>
 <?= $this->escape(print_r($this->trap, 1)) ?>
 </pre>-->
 <div class="content">
-<table class="avp">
+<table class="key-value-table table-x-rows-collapsible">
 <tr><th>Timestamp</th><td><?= $trap->timestamp ?></td></tr>
 <tr><th>Hostname</th><td><?= $this->escape($trap->host_name) ?></td></tr>
 <tr><th>OID</th><td><?= $trap->oid ?> (<?= $trap->type ?>)</td></tr>
@@ -27,14 +38,34 @@ if ($trap->resolvesOid($var->oid)) {
     echo $this->escape($var->oid);
 }
  ?></th>
-  <td><?= $this->escape($var->type === 'object_id' ? $trap->getOidName($var->value) : $var->value) ?> (<?= $var->type ?>)
+  <td><span class="collapse-handle"><?php
+
+if ($var->type === 'object_id') {
+    echo $this->escape($trap->getOidName($var->value));
+} elseif (preg_match('~^https?://~', $var->value)) {
+    echo $this->qlink($var->value, $var->value);
+} else {
+    echo $this->escape($var->value);
+}
+
+?>
 <?php if ($trap->resolvesOid($var->oid)) {
     $res = $trap->resolveOid($var->oid);
+/*
     echo $this->icon(
     'info',
     sprintf($str_oid, $res->mib_name, $res->short_name, $var->oid) . " \n" . $res->description
   );
-} ?></td>
+*/
+} ?></span><div class="collapsible">
+<p><?= $this->escape($res->description) ?></p>
+<pre>
+MIB : <?= $this->escape($res->mib_name) ?> 
+Name: <?= $this->escape($res->short_name) ?> 
+OID : <?= $this->escape($var->oid) ?> 
+Type: <?= $var->type ?>
+</pre>
+</div></td>
 </tr>
 <?php endforeach ?>
 </table>
