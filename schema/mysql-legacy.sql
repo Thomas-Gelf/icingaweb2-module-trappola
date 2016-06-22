@@ -1,7 +1,7 @@
 CREATE TABLE trap (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   listener_id int(10) unsigned DEFAULT NULL,
-  timestamp timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  timestamp timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   host_name varchar(255) DEFAULT NULL,
   src_address varbinary(16) NOT NULL,
   src_port int(10) unsigned DEFAULT NULL,
