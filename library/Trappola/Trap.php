@@ -4,6 +4,7 @@ namespace Icinga\Module\Trappola;
 
 use Icinga\Module\Trappola\Data\Db\DbObject;
 use Icinga\Module\Trappola\TrapDb;
+use Icinga\Module\Trappola\Util;
 
 class Trap extends DbObject
 {
@@ -202,5 +203,52 @@ class Trap extends DbObject
         }
 
         return $this->varbinds;
+    }
+
+    public static function fromSerializedJson($json, TrapDb $db = null)
+    {
+        return static::create((array) json_decode($json), $db);
+    }
+
+    public function toSerializedJson()
+    {
+        return json_encode($this->toSerializedObject());
+    }
+
+    protected function toSerializedObject()
+    {
+        $blacklist = array(
+            'id',
+            'mib_name',
+            'host_name',
+            'short_name',
+            'message',
+            'timestamp'
+        );
+
+        $binary = array('v3_sec_engine', 'v3_ctx_engine');
+
+        $props = array();
+        foreach ($this->getProperties() as $key => $val) {
+            if ($val === null) {
+                continue;
+            }
+
+            if (in_array($key, $blacklist)) {
+                continue;
+            }
+
+            if (in_array($key, $binary)) {
+                $val = Util::bin2hex($val);
+            }
+            $props[$key] = $val;
+        }
+
+        $props['varbinds'] = array();
+        foreach ($this->getVarbinds() as $varbind) {
+            $props['varbinds'][] = $varbind->toSerializedObject();
+        }
+
+        return (object) $props;
     }
 }
