@@ -60,5 +60,16 @@ class TrapDb extends DbConnection
 
         return $this->db()->fetchPairs($select);
     }
+
+    public function purgeAcknowledgedEventsBefore($timestamp)
+    {
+        return $this->db()->delete(
+            'trap',
+            $this->db()->quoteInto(
+                "acknowledged = 'y' AND timestamp < ?",
+                date('Y-m-d H:i:s', $timestamp)
+            )
+        );
+    }
 }
 

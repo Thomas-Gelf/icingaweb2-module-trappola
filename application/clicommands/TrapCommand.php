@@ -3,6 +3,8 @@
 namespace Icinga\Module\Trappola\Clicommands;
 
 use Icinga\Cli\Command;
+use Icinga\Application\Logger;
+use Icinga\Exception\ConfigurationError;
 use Icinga\Module\Trappola\Handler\OracleEnterpriseTrapHandler;
 use Icinga\Module\Trappola\Redis;
 use Icinga\Module\Trappola\Trap;
@@ -92,6 +94,26 @@ class TrapCommand extends Command
 
                 $hasTransaction = false;
             }
+        }
+    }
+
+    public function cleanupAction()
+    {
+        $configuredStart = $this->Config()->get('db', 'purge_before', '-6 month');
+        $start = strtotime($configuredStart);
+
+        if (! $start || $start > (time() - 900)) {
+
+            throw new ConfigurationError(
+                '"%s" is not a valid purge time definition',
+                $configuredStart
+            );
+        }
+
+        $res = $this->db()->purgeAcknowledgedEventsBefore($start);
+
+        if ($res > 0) {
+            Logger::info('%d acknowledged traps have purged', $res);
         }
     }
 

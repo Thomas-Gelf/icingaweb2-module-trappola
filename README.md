@@ -76,6 +76,26 @@ in the web frontend.
 A handler written for traps sent by the Oracle Enterprise Manager. It
 is able to correlate Incidents based on the Oracle event ID.
 
+Database cleanup
+----------------
+
+Acknowledged outdated events can be removed with
+
+    icingacli trappola trap cleanup
+
+Please add `--verbose` in case you want to have a notice on STDOUT or in
+your syslog telling you how many traps have been purged:
+
+    icingacli trappola trap cleanup --verbose
+
+It is a good advise to run this at least once a day as a cronjob. Per default
+it purges only acknowledged traps older than 6 months. You can adjust this in
+your `config.ini` via the `purge_before` setting in the `db` section:
+
+```ini
+[db]
+purge_before = "-3 month"
+```
 
 Future plans
 ------------
