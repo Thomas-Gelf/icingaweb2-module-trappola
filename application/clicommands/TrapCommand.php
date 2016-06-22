@@ -4,12 +4,15 @@ namespace Icinga\Module\Trappola\Clicommands;
 
 use Icinga\Cli\Command;
 use Icinga\Module\Trappola\Handler\OracleEnterpriseTrapHandler;
+use Icinga\Module\Trappola\Redis;
 use Icinga\Module\Trappola\Trap;
 use Icinga\Module\Trappola\TrapDb;
 
 class TrapCommand extends Command
 {
     protected $db;
+
+    protected $redis;
 
     public function testAction()
     {
@@ -107,5 +110,14 @@ class TrapCommand extends Command
         }
 
         return $this->db;
+    }
+
+    protected function redis()
+    {
+        if ($this->redis === null) {
+            $this->redis = Redis::instance();
+        }
+
+        return $this->redis;
     }
 }
