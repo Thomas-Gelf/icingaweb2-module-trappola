@@ -14,6 +14,8 @@ class TrapCommand extends Command
 
     protected $redis;
 
+    protected $handlers;
+
     public function testAction()
     {
         $trap = Trap::load(44085, $this->db());
@@ -95,6 +97,15 @@ class TrapCommand extends Command
 
     protected function trapHandlers()
     {
+        if ($this->handlers === null) {
+            $this->refreshHandlers();
+        }
+
+        return $this->handlers;
+    }
+
+    protected function refreshHandlers()
+    {
         $handlers = array(
             new OracleEnterpriseTrapHandler()
         );
@@ -103,7 +114,7 @@ class TrapCommand extends Command
             $handlers->initialize();
         }
 
-        return $handlers;
+        $this->handlers = $handlers;
     }
 
     // TODO: This is a prototype
