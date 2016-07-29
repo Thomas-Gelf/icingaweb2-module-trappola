@@ -131,7 +131,6 @@ abstract class TrapHandler
                     'host_address',
                     'hostname',
                 )
-            )
-        )->getQuery()->fetchPairs();
+            )->getQuery()->fetchPairs();
     }
 }
