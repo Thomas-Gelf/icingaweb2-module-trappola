@@ -7,10 +7,8 @@ use Icinga\Module\Trappola\Web\Table\QuickTable;
 class TrapTable extends QuickTable
 {
     protected $searchColumns = array(
-        'name',
         'message',
-        'host_name',
-        'acknowledged',
+        //'host_name',
     );
 
     protected $lastDay;
