@@ -3,6 +3,7 @@
 namespace Icinga\Module\Trappola\Web;
 
 use Icinga\Data\Paginatable;
+use Icinga\Exception\ConfigurationError;
 use Icinga\Module\Trappola\TrapDb;
 use Icinga\Module\Trappola\Web\Form\FormLoader;
 use Icinga\Module\Trappola\Web\Table\TableLoader;
@@ -58,7 +59,11 @@ abstract class Controller extends ActionController
             if ($resourceName) {
                 $this->db = TrapDb::fromResourceName($resourceName);
             } else {
-                $this->redirectNow('trappola/welcome');
+                throw new ConfigurationError(
+                    'No database resource has been configured for Trappola'
+                );
+
+                // TODO: $this->redirectNow('trappola/welcome');
             }
         }
 
