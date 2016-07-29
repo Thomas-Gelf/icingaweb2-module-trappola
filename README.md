@@ -28,12 +28,40 @@ through with Icinga Web 2:
 resource = trappola
 ```
 
+Such a database resource can be created in the Icinga Web 2 frontend. Just
+go to `Configuration` - `Application` - `Resources` and add a new MySQL resource.
+The generated config section in `/etc/icingaweb2/resources.ini` would look as
+follows:
+
+```ini
+[trappola]
+type = "db"
+db = "mysql"
+host = "localhost"
+port = "3306"
+dbname = "trappola"
+username = "trappola"
+password = "***"
+charset = "utf8"
+```
+
+Last but not least you need to import the corresponding database schema. It can
+be found in the `schema` directory.
+
 Spooling Traps
 --------------
 
 The trap reciever uses Redis to spool incoming traps. The code embedded
 into snmptrapd should receive traps as fast as possible with minimal
-processing involved. Redis makes a perfect fit for this use-case.
+processing involved. Redis makes a perfect fit for this use-case. In case
+your Redis is running on a different system you can add a related section
+to your `config.ini`:
+
+```ini
+[redis]
+host = 192.0.2.10
+port = 6379
+```
 
 Former versions used a file-based spool, also that one used to be pretty
 fast. And in theory for most small environments we could perfectly do
@@ -95,6 +123,33 @@ your `config.ini` via the `purge_before` setting in the `db` section:
 ```ini
 [db]
 purge_before = "-3 month"
+```
+
+Systemd
+-------
+
+Please create `/etc/systemd/system/trappola-trap-consumer.service` for the
+trap consumer service:
+
+```ini
+[Install]
+WantedBy=multi-user.target
+
+[Unit]
+Description=Trappola Trap Consumer
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/icingacli trappola trap consume
+Restart=on-success
+```
+
+Then please refresh systemd, enable and start the service:
+
+```
+systemctl daemon-reload
+systemctl enable trappola-trap-consumer.service
+systemctl start trappola-trap-consumer.service
 ```
 
 Future plans
