@@ -1,6 +1,39 @@
 <div class="controls">
 <?= $this->tabs ?>
+<?php
+
+$rows = $this->table->fetchData();
+
+if (empty($rows)) {
+    $maxId = null;
+} else {
+    $maxId = current($rows)->id;
+}
+
+$filter = $this->filterEditor->getFilter();
+
+?>
 <h1>SNMP Traps</h1>
+<?php if ($maxId && ! $filter->isEmpty()): ?>
+<span class="action-links">
+<?= $this->qlink(
+    $this->translate('Acknowledge'),
+    $this->url()->with('action', 'ack')->with('maxId', $maxId),
+    null,
+    array(
+        'class' => 'icon-ok',
+        'title' => $this->translate('Acknowledge all traps in the shown list')
+    ))
+?><?= $this->qlink(
+    $this->translate('Un-acknowledge'),
+    $this->url()->with('action', 'unack')->with('maxId', $maxId),
+    null,
+    array(
+        'class' => 'icon-rewind',
+        'title' => $this->translate('Remove acknowledgements from all traps in the shown list')
+    ))
+?></span>
+<?php endif ?>
 <?= $this->filterEditor ?><br />
 <?= $this->table->getPaginator() ?>
 

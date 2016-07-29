@@ -3,6 +3,7 @@
 namespace Icinga\Module\Trappola\Controllers;
 
 use Icinga\Module\Trappola\Web\Controller;
+use Icinga\Web\Url;
 
 class ListController extends Controller
 {
@@ -10,7 +11,28 @@ class ListController extends Controller
     {
         $table = $this->loadTable('trap')->setConnection($this->db());
         $this->view->table = $this->applyPaginationLimits($table);
+        $url = $this->getRequest()->getUrl();
+        $action = $url->shift('action');
+        $maxId = $url->shift('maxId');
         $this->view->filterEditor = $table->getFilterEditor($this->getRequest());
+        $filter = $this->view->filterEditor->getFilter();
+        if ($action === 'ack' && ! $filter->isEmpty()) {
+            $this->db()->update(
+                'trap',
+                array('acknowledged' => 'y'),
+                $filter
+            );
+            $this->redirectNow($url);
+        }
+        if ($action === 'unack' && ! $filter->isEmpty()) {
+            $this->db()->update(
+                'trap',
+                array('acknowledged' => 'n'),
+                $filter
+            );
+            $this->redirectNow($url);
+        }
+
         $this->prepareTabs()->activate('traps');
         $this->setAutorefreshInterval(10);
         $this->view->traps = $this->db()->fetchTraps();
@@ -30,7 +52,7 @@ class ListController extends Controller
         $this->setAutorefreshInterval(10);
         $this->view->traps = $this->db()->fetchTraps();
 
-        $this->render('traps');
+        $this->render('onlytraps');
     }
 
     public function hostsummaryAction()
@@ -47,7 +69,7 @@ class ListController extends Controller
         $this->setAutorefreshInterval(10);
         $this->view->traps = $this->db()->fetchTraps();
 
-        $this->render('traps');
+        $this->render('onlytraps');
     }
 
     protected function prepareTabs()
