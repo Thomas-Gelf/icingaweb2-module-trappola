@@ -6,6 +6,7 @@ use Icinga\Cli\Command;
 use Icinga\Application\Logger;
 use Icinga\Exception\ConfigurationError;
 use Icinga\Module\Trappola\Handler\OracleEnterpriseTrapHandler;
+use Icinga\Module\Trappola\Handler\F5TrapHandler;
 use Icinga\Module\Trappola\Redis;
 use Icinga\Module\Trappola\Trap;
 use Icinga\Module\Trappola\TrapDb;
@@ -17,23 +18,6 @@ class TrapCommand extends Command
     protected $redis;
 
     protected $handlers;
-
-    public function testAction()
-    {
-        $trap = Trap::load(44085, $this->db());
-        echo $trap->getVarbind('.1.3.6.1.4.1.111.15.3.1.1.3.1')->value;
-//        echo $trap->getVarbindByShortname('oraEMNGEventHostName.1');
-        // echo $trap->getVarByName('oraEMNGEventHostName.1');
-        foreach ($this->trapHandlers() as $handler) {
-            if ($handler->wants($trap)) {
-                $handler->mangle($trap);
-                $handler->processNewTrap($trap);
-            }
-        }
-
-        //oraEMNGEventHostName.1
-        echo "\n";
-    }
 
     public function resendAction()
     {
@@ -50,22 +34,6 @@ class TrapCommand extends Command
             $this->storeJsonTrap($f);
             $db->getDbAdapter()->commit();
         }
-    }
-
-    protected function storeJsonTrap($json)
-    {
-        $trap = Trap::fromSerializedJson($json, $this->db());
-        $trap->resolveTrapName();
-        foreach ($this->trapHandlers() as $handler) {
-            if ($handler->wants($trap)) {
-                $handler->mangle($trap);
-                $handler->processNewTrap($trap);
-            }
-        }
-
-        $trap->store();
-
-        return $this;
     }
 
     public function consumeAction()
@@ -89,11 +57,13 @@ class TrapCommand extends Command
                     break;
                 }
             }
-            echo "Got nothing for 1sec\n";
+            if ($cnt === 0) {
+                // echo "Got nothing for 1sec\n";
+            }
 
             if ($hasTransaction) {
                 if ($cnt > 0) {
-                    echo "Committing $cnt events\n";
+                    // echo "Committing $cnt events\n";
                     $cnt = 0;
                     $db->commit();
                 } else {
@@ -125,29 +95,6 @@ class TrapCommand extends Command
         }
     }
 
-    protected function trapHandlers()
-    {
-        if ($this->handlers === null) {
-            $this->refreshHandlers();
-        }
-
-        return $this->handlers;
-    }
-
-    protected function refreshHandlers()
-    {
-        $handlers = array(
-            new OracleEnterpriseTrapHandler()
-        );
-
-        foreach ($handlers as $handler) {
-            $handler->setDb($this->db());
-            $handler->initialize();
-        }
-
-        $this->handlers = $handlers;
-    }
-
     // TODO: This is a prototype
     public function expireAction()
     {
@@ -163,6 +110,21 @@ class TrapCommand extends Command
         }
     }
 
+    /**
+     * Run checks against the Trappola Trap database
+     *
+     * This command can be used as a check plugin
+     *
+     * USAGE
+     *
+     * icingacli trappola trap check [options]
+     *
+     * OPTIONS
+     *
+     *   --host        Search for a specific host
+     *   --address     Alternatively search for a specific host address
+     *   --message     Optionally only search for specific message patterns
+     */
     public function checkAction()
     {
         $host  = $this->params->shift('host');
@@ -173,22 +135,36 @@ class TrapCommand extends Command
         $db = $this->db()->getDbAdapter();
         $events = $db->select()->from('trap', 'COUNT(*)');
         if ($host) {
-            $events->where('host_name LIKE ?', str_replace('*', '%', $host));
+            if (strpos($host, '*') === false) {
+                $events->where('host_name = ?', $host);
+            } else {
+                $events->where('host_name LIKE ?', str_replace('*', '%', $host));
+            }
         }
+
         if ($address) {
-            $events->where('src_address LIKE ?', str_replace('*', '%', $address));
+            if (strpos($address, '*') === false) {
+                $events->where('src_address = ?', $address);
+            } else {
+                $events->where('src_address LIKE ?', str_replace('*', '%', $address));
+            }
         }
-        if ($address) {
-            $events->where('src_address LIKE ?', str_replace('*', '%', $address));
-        }
+
         if ($match) {
             $events->where('message LIKE ?',  str_replace('*', '%', $match));
         }
 
+        $events->where('acknowledged = ?', 'n');
+
         $cnt = $db->fetchOne($events);
 
-        printf("Found %s traps\n", $cnt);
-        exit(0);
+        if ($cnt > 0) {
+            printf("ERROR: Found %s unacknowledged traps\n", $cnt);
+            exit(2);
+        } else {
+            printf("OK: Found no unacknowledged traps\n", $cnt);
+            exit(0);
+        }
     }
 
     public function mibAction()
@@ -199,6 +175,53 @@ class TrapCommand extends Command
         }
         $data = json_decode($f);
         print_r($data);
+    }
+
+    protected function storeJsonTrap($json)
+    {
+        $trap = Trap::fromSerializedJson($json, $this->db());
+        $trap->resolveTrapName();
+
+        foreach ($this->trapHandlers() as $handler) {
+            if ($handler->wants($trap)) {
+                $handler->mangle($trap);
+                $handler->processNewTrap($trap);
+            }
+        }
+
+        $trap->store();
+
+        return $this;
+    }
+
+    protected function trapHandlers()
+    {
+        if ($this->handlers === null) {
+            $this->refreshHandlers();
+        }
+
+        return $this->handlers;
+    }
+
+    protected function refreshHandlers()
+    {
+        $handlers = array(
+            new OracleEnterpriseTrapHandler(),
+            new F5TrapHandler()
+        );
+
+        $first = true;
+        foreach ($handlers as $handler) {
+            if ($first) {
+                $handler::refreshIcingaLookup();
+                $first = false;
+            }
+
+            $handler->setDb($this->db());
+            $handler->initialize();
+        }
+
+        $this->handlers = $handlers;
     }
 
     protected function db()
