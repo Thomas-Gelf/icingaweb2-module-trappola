@@ -14,13 +14,21 @@ class TrapVarbind extends DbObject
     protected $table = 'trap';
 
     protected $defaultProperties = array(
-        'oid'         => null,
-        'type'        => null,
-        'value'       => null,
-        'short_name'  => null,
-        'mib_name'    => null,
-        'description' => null,
+// ???? UNUSED???
+        'oid'          => null,
+        'oid_checksum' => null,
+        'type'         => null,
+        'value'        => null,
+        'short_name'   => null,
+        'mib_name'     => null,
+        'description'  => null,
     );
+
+    public function setOid($oid)
+    {
+        $this->oid_checksum = sha1($oid, true);
+        return $this->reallySet('oid', $oid);
+    }
 
     public function toSerializedObject()
     {

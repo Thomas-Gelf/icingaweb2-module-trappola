@@ -8,7 +8,7 @@ use Icinga\Module\Trappola\Util;
 
 class Trap extends DbObject
 {
-    protected $oidCache;
+    protected static $oidCache;
 
     protected $keyName = 'id';
 
@@ -40,6 +40,7 @@ class Trap extends DbObject
         'requestid'        => null,
         'transactionid'    => null,
         'messageid'        => null,
+        'oid_checksum'     => null,
         'oid'              => null,
         'short_name'       => null,
         'mib_name'         => null,
@@ -53,10 +54,26 @@ class Trap extends DbObject
         'v3_ctx_engine'    => null,
     );
 
+    public function resolveTrapName()
+    {
+        $trapOid = $this->resolveOid($this->oid);
+        $this->mib_name = $trapOid->mib_name;
+        $this->short_name = $trapOid->short_name;
+        if ($this->message === null) {
+            $this->message = $trapOid->description;
+        }
+    }
+
+    public function setOid($oid)
+    {
+        $this->oid_checksum = sha1($oid, true);
+        return $this->reallySet('oid', $oid);
+    }
+
     public function resolveOid($oid)
     {
         if ($this->resolvesOid($oid)) {
-            return $this->oidCache[$oid];
+            return self::$oidCache[$oid];
         } else {
             return $this->getUnresolved($oid);
         }
@@ -67,17 +84,18 @@ class Trap extends DbObject
         $db = $this->getDb();
         foreach ($this->varbinds as $varbind) {
             $db->insert('trap_varbind', array(
-                'trap_id' => $this->id,
-                'oid'     => $varbind->oid,
-                'type'    => $varbind->type,
-                'value'   => $varbind->value,
+                'trap_id'      => $this->id,
+                'oid'          => $varbind->oid,
+                'oid_checksum' => sha1($varbind->oid, true),
+                'type'         => $varbind->type,
+                'value'        => $varbind->value,
             ));
         }
     }
 
     protected function fillOidCache()
     {
-        $this->oidCache = array();
+        self::$oidCache = array();
 
         if (! $this->hasConnection()) {
             return;
@@ -97,12 +115,12 @@ class Trap extends DbObject
 
         foreach ($resolved as $cached) {
             $cached->short_name = preg_replace('/\.0$/', '', $cached->short_name);
-            $this->oidCache[$cached->oid] = $cached;
+            self::$oidCache[$cached->oid] = $cached;
             unset($oids[$cached->oid]);
         }
 
         foreach ($oids as $oid) {
-            $this->oidCache[$oid] = $this->getUnresolved($oid);
+            self::$oidCache[$oid] = $this->getUnresolved($oid);
         }
     }
 
@@ -118,13 +136,12 @@ class Trap extends DbObject
 
     public function resolvesOid($oid)
     {
-        if ($this->oidCache === null) {
+        if (self::$oidCache === null) {
             $this->fillOidCache();
         }
-        
-        //print_r($this->oidCache);
-        return array_key_exists($oid, $this->oidCache)
-            && $this->oidCache[$oid]->mib_name !== null;
+
+        return array_key_exists($oid, self::$oidCache)
+            && self::$oidCache[$oid]->mib_name !== null;
     }
 
     public function getOidDescription($oid)
@@ -194,7 +211,9 @@ class Trap extends DbObject
             //$this->varbind_idx = array();
             if ($this->hasBeenLoadedFromDb()) {
                 $db = $this->getConnection();
-                $this->varbinds = TrapVarbind::loadAll($db, $db->getTrapVarsQuery($this->id));
+                // $this->varbinds = TrapVarbind::loadAll($db, $db->getTrapVarsQuery($this->id));
+                $varbinds = TrapVarbind::loadAll($db, $db->getTrapVarsQuery($this->id));
+                $this->setVarbinds($varbinds);
                 //foreach ($this->varbinds as $key => $varbind) {
                 //    $this->varbind_idx[$varbind->oid] = $key;
                 //}
@@ -224,7 +243,9 @@ class Trap extends DbObject
             'host_name',
             'short_name',
             'message',
-            'timestamp'
+            'timestamp',
+            'acknowledged',
+            'oid_checksum'
         );
 
         $binary = array('v3_sec_engine', 'v3_ctx_engine');
