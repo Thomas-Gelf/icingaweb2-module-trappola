@@ -103,7 +103,7 @@ ALTER TABLE trap ADD INDEX idx_host_ack (host_name(64), acknowledged);
 ALTER TABLE trap ADD INDEX idx_ts_ack (timestamp, acknowledged);
 
 
-UPDATE trap t JOIN trap_oidcache c ON t.oid = c.oid SET t.mib_name = c.mib_name, t.short_name = c.short_name, t.message = c.description WHERE (t.short_name LIKE '%.%.%' OR t.short_name IS NULL) AND c.short_name NOT LIKE '%.%.%'
+UPDATE trap t JOIN trap_oidcache c ON t.oid = c.oid SET t.mib_name = c.mib_name, t.short_name = c.short_name, t.message = c.description WHERE (t.short_name LIKE '%.%.%' OR t.short_name IS NULL) AND c.short_name NOT LIKE '%.%.%';
 
 ALTER TABLE trap
   ADD COLUMN oid_checksum VARBINARY(20) NOT NULL AFTER messageid,
