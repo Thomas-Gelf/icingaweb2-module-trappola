@@ -7,6 +7,7 @@ use Icinga\Cli\Command;
 use Icinga\Application\Logger;
 use Icinga\Exception\ConfigurationError;
 use Icinga\Module\Trappola\Handler\OracleEnterpriseTrapHandler;
+use Icinga\Module\Trappola\Handler\OmniPcxTrapHandler;
 use Icinga\Module\Trappola\Handler\F5TrapHandler;
 use Icinga\Module\Trappola\Redis;
 use Icinga\Module\Trappola\Trap;
@@ -207,6 +208,7 @@ class TrapCommand extends Command
     {
         $handlers = array(
             new OracleEnterpriseTrapHandler(),
+            new OmniPcxTrapHandler(),
             new F5TrapHandler()
         );
 
