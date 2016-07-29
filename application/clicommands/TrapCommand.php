@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Trappola\Clicommands;
 
+use Exception;
 use Icinga\Cli\Command;
 use Icinga\Application\Logger;
 use Icinga\Exception\ConfigurationError;
@@ -39,39 +40,38 @@ class TrapCommand extends Command
     public function consumeAction()
     {
         $db = $this->db()->getDbAdapter();
-        $hasTransaction = false;
         $cnt = 0;
         $redis = $this->redis();
 
         while (true) {
 
             while ($res = $redis->brpop('Trappola::queue', 1)) {
+                // res = array(queuename, value)
                 $cnt++;
-                if (! $hasTransaction) {
+                try {
+                    $hasTransaction = false;
                     $db->beginTransaction();
                     $hasTransaction = true;
-                }
-                // res = array(queuename, value)
-                $this->storeJsonTrap($res[1]);
-                if ($cnt >= 50) {
-                    break;
+                    $this->storeJsonTrap($res[1]);
+                    $db->commit();
+                } catch (Exception $e) {
+                    if ($hasTransaction) {
+                        try {
+                            $db->rollBack();
+                        } catch (Exception $e) {
+                        }
+                    }
+
+                    $this->db = null;
+                    $db = $this->db();
                 }
             }
+
             if ($cnt === 0) {
                 // echo "Got nothing for 1sec\n";
             }
 
-            if ($hasTransaction) {
-                if ($cnt > 0) {
-                    // echo "Committing $cnt events\n";
-                    $cnt = 0;
-                    $db->commit();
-                } else {
-                    $db->rollBack();
-                }
-
-                $hasTransaction = false;
-            }
+            $cnt = 0;
         }
     }
 
@@ -213,7 +213,7 @@ class TrapCommand extends Command
         $first = true;
         foreach ($handlers as $handler) {
             if ($first) {
-                $handler::refreshIcingaLookup();
+                // TODO: $handler::refreshIcingaLookup();
                 $first = false;
             }
 
