@@ -1,11 +1,9 @@
-<?php
-
-$str_oid = '%s::%s (%s)';
-
-?><div class="controls">
+<div class="controls">
 <?= $this->tabs ?>
-<h1><?= $this->escape($this->trap->mib_name . '::' . $this->trap->short_name) ?></h1>
-<p><?= $this->escape($this->trap->message) ?></p>
+<h1><?= $this->escape($trap->getOidName($trap->oid)) ?></h1>
+<?php if ($trap->message): ?>
+<p><?= $this->escape($trap->message) ?></p>
+<?php endif ?>
 <?php
 /*
 if ($trap->resolvesOid($trap->oid)) {
@@ -41,7 +39,11 @@ if ($trap->resolvesOid($var->oid)) {
   <td><span class="collapse-handle"><?php
 
 if ($var->type === 'object_id') {
-    echo $this->escape($trap->getOidName($var->value));
+    if ($trap->resolvesOid($var->value)) {
+        echo $this->escape($trap->getOidName($var->value));
+    } else {
+        echo $this->escape($var->value);
+    }
 } elseif (preg_match('~^https?://~', $var->value)) {
     echo $this->qlink($var->value, $var->value);
 } else {
@@ -49,19 +51,20 @@ if ($var->type === 'object_id') {
 }
 
 ?>
-<?php if ($trap->resolvesOid($var->oid)) {
+</span><div class="collapsible">
+<p>
+<?php if ($trap->resolvesOid($var->oid)): ?>
+<?php
     $res = $trap->resolveOid($var->oid);
-/*
-    echo $this->icon(
-    'info',
-    sprintf($str_oid, $res->mib_name, $res->short_name, $var->oid) . " \n" . $res->description
-  );
-*/
-} ?></span><div class="collapsible">
-<p><?= $this->escape($res->description) ?></p>
+?>
+<?= $this->escape($res->description) ?></p>
 <pre>
 MIB : <?= $this->escape($res->mib_name) ?> 
 Name: <?= $this->escape($res->short_name) ?> 
+<?php else: ?>
+<?= $this->escape($var->oid) ?></p>
+<pre>
+<?php endif ?>
 OID : <?= $this->escape($var->oid) ?> 
 Type: <?= $var->type ?>
 </pre>
