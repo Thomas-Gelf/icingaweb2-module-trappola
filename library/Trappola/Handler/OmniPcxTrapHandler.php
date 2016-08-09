@@ -1,4 +1,4 @@
-?php
+<?php
 
 namespace Icinga\Module\Trappola\Handler;
 
