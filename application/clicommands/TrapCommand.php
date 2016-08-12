@@ -3,8 +3,8 @@
 namespace Icinga\Module\Trappola\Clicommands;
 
 use Exception;
-use Icinga\Cli\Command;
 use Icinga\Application\Logger;
+use Icinga\Cli\Command;
 use Icinga\Exception\ConfigurationError;
 use Icinga\Module\Trappola\Handler\OracleEnterpriseTrapHandler;
 use Icinga\Module\Trappola\Handler\OmniPcxTrapHandler;
@@ -40,39 +40,19 @@ class TrapCommand extends Command
 
     public function consumeAction()
     {
-        $db = $this->db()->getDbAdapter();
-        $cnt = 0;
-        $redis = $this->redis();
-
         while (true) {
-
-            while ($res = $redis->brpop('Trappola::queue', 1)) {
-                // res = array(queuename, value)
-                $cnt++;
-                try {
-                    $hasTransaction = false;
-                    $db->beginTransaction();
-                    $hasTransaction = true;
-                    $this->storeJsonTrap($res[1]);
-                    $db->commit();
-                } catch (Exception $e) {
-                    if ($hasTransaction) {
-                        try {
-                            $db->rollBack();
-                        } catch (Exception $e) {
-                        }
-                    }
-
-                    $this->db = null;
-                    $db = $this->db();
-                }
+            try {
+                $lastConnect = time();
+                $this->consumeFromRedis();
+            } catch (Exception $e) {
+                Logger::error('(trappola) ' . $e->getMessage());
+                $this->db    = null;
+                $this->redis = null;
             }
 
-            if ($cnt === 0) {
-                // echo "Got nothing for 1sec\n";
+            if ((time() - $lastConnect) < 5) {
+                sleep(5);
             }
-
-            $cnt = 0;
         }
     }
 
@@ -176,6 +156,51 @@ class TrapCommand extends Command
         }
         $data = json_decode($f);
         print_r($data);
+    }
+
+    protected function consumeFromRedis()
+    {
+        $db = $this->db()->getDbAdapter();
+        $redis = $this->redis();
+
+        while ($res = $redis->brpop('Trappola::queue', 1)) {
+            // res = array(queuename, value)
+
+            // Eventually: $this->trapCount++;
+            try {
+                $hasTransaction = false;
+                $db->beginTransaction();
+                $hasTransaction = true;
+                $this->storeJsonTrap($res[1]);
+                $db->commit();
+            } catch (Exception $e) {
+                Logger::error('(trappola) ' . $e->getMessage());
+
+                if ($hasTransaction) {
+                    try {
+                        $db->rollBack();
+                    } catch (Exception $e) {
+                        Logger::error(
+                            '(trappola) failed to rollback db transaction'
+                        );
+                    }
+                }
+
+                try {
+                    $redis->rpush('Trappola::queue', $res[1]);
+                } catch (Exception $e) {
+                    Logger::error(
+                        '(trappola) failed to re-push issue to Redis: '
+                        . $e->getMessage()
+                    );
+                }
+
+                $this->db    = null;
+                $this->redis = null;
+
+                return;
+            }
+        }
     }
 
     protected function storeJsonTrap($json)
