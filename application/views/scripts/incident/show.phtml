@@ -21,7 +21,7 @@ $icingaServiceStates = array(
 <tr>
   <td class="state <?= strtolower(
     $icingaServiceStates[$incident->icinga_state]
-  ) ?><?php if ($incident->expire_at): ?> handled<?php endif ?>"><?= $icingaServiceStates[$incident->icinga_state] ?></td>
+  ) ?><?php if ($incident->expire_after): ?> handled<?php endif ?>"><?= $icingaServiceStates[$incident->icinga_state] ?></td>
   <td><p><?= $this->escape($incident->message) ?></p>
 <blockquote>
 <?php if ($incident->cnt_events > 1): ?>
@@ -43,7 +43,7 @@ $icingaServiceStates = array(
 
 if ((int) $incident->icinga_state !== 0) {
 
-    if ($incident->expire_at === null) {
+    if ($incident->expire_after === null) {
         echo '<br />' . $this->qlink(
             $this->translate('Expire now'),
             'trappola/incident/expire',
@@ -53,7 +53,7 @@ if ((int) $incident->icinga_state !== 0) {
     } else {
         printf(
             $this->translate('This issue has been scheduled for expiration %s'),
-            $this->timeUntil(strtotime($incident->expire_at))
+            $this->timeUntil(strtotime($incident->expire_after))
         );
     }
 }
