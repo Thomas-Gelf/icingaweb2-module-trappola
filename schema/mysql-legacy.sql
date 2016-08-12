@@ -144,5 +144,6 @@ CREATE TABLE icinga_trap_issue (
   PRIMARY KEY(id),
   UNIQUE KEY(checksum),
   KEY icinga_object_checksum (icinga_object_checksum),
-  KEY icinga_host (icinga_host)
+  KEY icinga_host (icinga_host),
+  KEY expire_after (expire_after)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
