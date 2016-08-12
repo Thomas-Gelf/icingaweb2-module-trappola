@@ -13,6 +13,9 @@ use Icinga\Module\Trappola\Redis;
 use Icinga\Module\Trappola\Trap;
 use Icinga\Module\Trappola\TrapDb;
 
+use Icinga\Module\Trappola\Icinga\IcingaTrapIssue;
+
+
 class TrapCommand extends Command
 {
     protected $db;
@@ -40,9 +43,15 @@ class TrapCommand extends Command
 
     public function consumeAction()
     {
+        $lastExpirationCleanup = 0;
         while (true) {
             try {
                 $lastConnect = time();
+                if ($lastExpirationCleanup + 45 < time()) {
+                    IcingaTrapIssue::cleanupExpiredIssues($this->db());
+                    $lastExpirationCleanup = time();
+                }
+
                 $this->consumeFromRedis();
             } catch (Exception $e) {
                 Logger::error('(trappola) ' . $e->getMessage());
@@ -165,6 +174,9 @@ class TrapCommand extends Command
 
         while ($res = $redis->brpop('Trappola::queue', 1)) {
             // res = array(queuename, value)
+
+            // TODO: if events come in faster than we are able to process them,
+            //       cleanup for expired issues will not take place
 
             // Eventually: $this->trapCount++;
             try {

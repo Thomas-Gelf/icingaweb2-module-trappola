@@ -153,9 +153,89 @@ class IcingaTrapIssue extends DbObject
         return $db->fetchOne($query) > 0;
     }
 
+    public static function loadNewestForIcingaService($host, $service, TrapDb $connection)
+    {
+        $db = $connection->getDbAdapter();
+
+        $checksum = sha1($host . '!' . $service, 1);
+
+        $query = $db->select()->from(
+                array('i' => 'icinga_trap_issue'),
+                array('checksum' => 'i.checksum')
+            )->where('i.icinga_object_checksum = ?', $checksum)
+            ->order('id DESC');
+
+        return static::load($db->fetchOne($query), $connection);
+    }
+
+    public static function loadNewestForIcingaServiceIfAny(
+        $host,
+        $service,
+        TrapDb $connection
+    ) {
+        $db = $connection->getDbAdapter();
+
+        $checksum = sha1($host . '!' . $service, 1);
+
+        $query = $db->select()->from(
+                array('i' => 'icinga_trap_issue'),
+                array('checksum' => 'i.checksum')
+            )->where('i.icinga_object_checksum = ?', $checksum)
+            ->order('id DESC');
+
+        if (false === ($checksum = $db->fetchOne($query))) {
+            return null;
+        }
+
+        return static::load($checksum, $connection);
+    }
+
     public static function loadForHexChecksum($checksum, TrapDb $db)
     {
         return static::load(pack('H*', $checksum), $db);
+    }
+
+    public static function cleanupExpiredIssues(TrapDb $connection)
+    {
+        $now = date('Y-m-d H:i:s');
+        $db = $connection->getDbAdapter();
+        $services = $db->fetchAll(
+            $db->select()->distinct()->from(
+                array('i' => 'icinga_trap_issue'),
+                array(
+                    'host'    => 'i.icinga_host',
+                    'service' => 'i.icinga_service',
+                )
+            )->where('i.expire_after IS NOT NULL AND i.expire_after < ?', $now)
+        );
+
+        if (empty($services)) {
+            return;
+        }
+
+        $db->delete(
+            'icinga_trap_issue',
+            $db->quoteInto('expire_after < ?', $now)
+        );
+
+        $pipe = new IcingaCommandPipe();
+
+        foreach ($services as $s) {
+            if ($issue = static::loadNewestForIcingaServiceIfAny(
+                $s->host,
+                $s->service,
+                $connection
+            )) {
+                $pipe->sendIssue($issue);
+            } else {
+                $pipe->sendCheckResult(
+                    $s->host,
+                    $s->service,
+                    0,
+                    'Expired last related issue at ' . $now
+                );
+            }
+        }
     }
 
     public function expire($author)
@@ -165,7 +245,7 @@ class IcingaTrapIssue extends DbObject
             $author
         ) . $this->message;
  
-        $this->expire_after = date('Y-m-d H:i:s', time() + 1800);
+        $this->expire_after = date('Y-m-d H:i:s', time() + 900);
         return $this->storeAndRefreshIcinga();
     }
 
