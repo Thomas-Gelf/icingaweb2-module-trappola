@@ -2,6 +2,7 @@
 
 namespace Icinga\Module\Trappola\Icinga;
 
+use Icinga\Application\Config;
 use Icinga\Module\Monitoring\Backend;
 use Icinga\Module\Monitoring\Command\Object\ProcessCheckResultCommand;
 use Icinga\Module\Monitoring\Command\Transport\CommandTransport;
@@ -15,21 +16,42 @@ class IcingaCommandPipe
 
     public function sendIssue(IcingaTrapIssue $issue)
     {
+        list($host, $service) = preg_split('/!/', $issue->icinga_object, 2);
+
+        $baseUrl = trim(
+            Config::module('trappola')->get('web', 'base_url', 'icingaweb2/'),
+            '/'
+        );
+
+        $output = sprintf(
+            '%s<br /><a href="/%s/trappola/incident/show?host=%s&service=%s"'
+            . ' class="icon-right-small">%s</a>',
+            $issue->message,
+            $baseUrl,
+            rawurlencode($host),
+            rawurlencode($service),
+            'Show details'
+        );
+
+        if ($long = $issue->getConsolidatedOutput()) {
+            $output .= "\n" . $long;
+        }
+
         return $this->sendCheckResult(
-            $issue->get('icinga_host'),
-            $issue->get('icinga_service'),
-            $issue->get('icinga_state'),
-            $issue->get('message')
+            $host,
+            $service,
+            $issue->getWorstState(),
+            $output
         );
     }
 
-    public function sendResult($host, $service, $status, $message)
+    public function sendCheckResult($host, $service, $status, $message)
     {
         $backend = $this->backend();
         $service = new Service($backend, $host, $service);
 
         $cmd = new ProcessCheckResultCommand();
-        $cmd->setObject($host)
+        $cmd->setObject($service)
             ->setStatus((int) $status)
             ->setOutput($message)
             // ->setPerformanceData($notYet)
@@ -50,7 +72,7 @@ class IcingaCommandPipe
     protected function backend()
     {
         if ($this->backend === null) {
-            $this->backend = Backend::createBackend($this->params->get('backend'));
+            $this->backend = Backend::createBackend(/** TODO: Name **/);
         }
         return $this->backend;
     }
