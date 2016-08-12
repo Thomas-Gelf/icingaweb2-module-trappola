@@ -55,3 +55,38 @@ span.ok {
     margin-right: 1em;
   }
 }
+
+td.state {
+  color: white;
+  text-align: center;
+  font-size: 0.8em;
+  padding: 0.2em 1em 0.2em 1em;
+  vertical-align: middle;
+  &.ok { background-color: @colorOk; }
+  &.warning { background-color: @colorWarning; }
+  &.warning.handled { background-color: @colorWarningHandled; }
+  &.critical { background-color: @colorCritical; }
+  &.critical.handled { background-color: @colorCriticalHandled; }
+  &.unknown { background-color: @colorUnknown; }
+  &.unknown.handled { background-color: @colorUnknownHandled; }
+}
+
+table.trap-incidents {
+  tr {
+    border-bottom: 1px solid white;
+  }
+
+  a {
+    text-decoration: underline;
+    &::before {
+      text-decoration: none;
+    }
+  }
+
+  blockquote {
+    border: none;
+    font-style: italic;
+    padding: 0;
+    margin: 0;
+  }
+}

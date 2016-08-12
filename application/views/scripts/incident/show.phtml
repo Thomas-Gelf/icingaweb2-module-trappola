@@ -1,0 +1,66 @@
+<div class="controls">
+<?= $this->tabs ?>
+<h1><?= $this->escape($this->title) ?></h1>
+</div>
+
+<div class="content">
+<?php if (empty($this->incidents)): ?>
+<?= $this->translate('No related trap-generated incidents have been found') ?>
+</div>
+<?php return; endif ?>
+<?php
+$icingaServiceStates = array(
+    'OK',
+    'WARNING',
+    'CRITICAL',
+    'UNKNOWN'
+);
+?>
+<table class="trap-incidents">
+<?php foreach ($incidents as $incident): ?>
+<tr>
+  <td class="state <?= strtolower(
+    $icingaServiceStates[$incident->icinga_state]
+  ) ?><?php if ($incident->expire_at): ?> handled<?php endif ?>"><?= $icingaServiceStates[$incident->icinga_state] ?></td>
+  <td><p><?= $this->escape($incident->message) ?></p>
+<blockquote>
+<?php if ($incident->cnt_events > 1): ?>
+<?= sprintf(
+    $this->translate('Got %d related traps, the first one at %s and the last one at %s.'),
+    $incident->cnt_events,
+    $incident->first_event,
+    $incident->last_event
+) ?>
+<?php else: ?>
+<?= sprintf(
+    $this->translate('Got a single trap at %s'),
+    $incident->first_event
+) ?>
+<?php endif ?>
+</blockquote>
+<p>
+<?php
+
+if ((int) $incident->icinga_state !== 0) {
+
+    if ($incident->expire_at === null) {
+        echo '<br />' . $this->qlink(
+            $this->translate('Expire now'),
+            'trappola/incident/expire',
+            array('checksum' => $incident->checksum),
+            array('class' => 'icon-cancel')
+        );
+    } else {
+        printf(
+            $this->translate('This issue has been scheduled for expiration %s'),
+            $this->timeUntil(strtotime($incident->expire_at))
+        );
+    }
+}
+?>
+   </p>
+  </td>
+</tr>
+<?php endforeach ?>
+</table>
+</div>
