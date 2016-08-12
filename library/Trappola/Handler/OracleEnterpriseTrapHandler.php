@@ -49,29 +49,12 @@ class OracleEnterpriseTrapHandler extends TrapHandler
 
     public function process()
     {
-        return; // TODO: temporarily disabled
-        $state = $this->getIcingaState();
-        if ($state > 0) {
-            $issue = $this->createIssue(
-                $this->getOracleIssueId()
-            );
-        } else {
-            //if (
-        }
-
-        // if ($this->trap->
+        Issue::handleTrap($this, $this->trap);
     }
 
-    protected function getOracleIssueId()
+    public function getIssueIdentifier()
     {
         return $this->getIcingaObjectName() . '!' . $this->getSequenceId();
-    }
-
-    protected function createIssue($id)
-    {
-        return Issue::create(array(
-            'checksum' => sha1($id, true)
-        ));
     }
 
     protected function getIcingaStateName()
@@ -86,9 +69,10 @@ class OracleEnterpriseTrapHandler extends TrapHandler
 
     public function mangle(Trap $trap)
     {
-        $this->trap = $trap;
-        $trap->host_name = $this->getHostname();
-        $trap->message   = $this->getMessage();
+        $this->trap         = $trap;
+        $trap->host_name    = $this->getHostname();
+        $trap->message      = $this->getMessage();
+        $trap->acknowledged = 'y';
     }
 
     protected function getMessage()
