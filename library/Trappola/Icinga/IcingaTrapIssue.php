@@ -53,6 +53,13 @@ class IcingaTrapIssue extends DbObject
         $identifier = $handler->getIssueIdentifier();
         $checksum = sha1($identifier, true);
         $objectName = $handler->getIcingaObjectname();
+        $hostname = $handler->getIcingaHostname();
+        $servicename = $handler->getIcingaServicename();
+
+        if (empty($hostname) || empty($servicename)) {
+            //  TODO: eventually log failure?
+            return;
+        }
 
         if (self::exists($checksum, $db)) {
             $issue = self::load($checksum, $db);
@@ -61,8 +68,8 @@ class IcingaTrapIssue extends DbObject
                 'checksum'               => $checksum,
                 'icinga_object'          => $objectName,
                 'icinga_object_checksum' => sha1($objectName, true),
-                'icinga_host'            => $handler->getIcingaHostname(),
-                'icinga_service'         => $handler->getIcingaServicename(),
+                'icinga_host'            => $hostname,
+                'icinga_service'         => $servicename,
                 'first_event'            => self::now(),
             ), $db);
         }
